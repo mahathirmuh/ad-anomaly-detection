@@ -1,0 +1,10 @@
+neo4j==5.17.0
+pandas==2.2.0
+numpy==1.26.3
+scikit-learn==1.4.0
+matplotlib==3.8.2
+seaborn==0.13.1
+jupyter==1.0.0
+ipykernel==6.29.0
+python-dateutil==2.8.2
+py2neo==2021.2.4
