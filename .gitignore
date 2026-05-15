@@ -23,24 +23,31 @@ wheels/
 .installed.cfg
 *.egg
 
-# Jupyter
+# Jupyter checkpoints saja (notebook .ipynb tetap di-track)
 .ipynb_checkpoints/
-*.ipynb
 
 # Environment
 .env
 .env.local
 .env.*.local
 
-# Data files (generated/large)
+# Raw / large data (sensitif & regenerated)
 data/raw_data/
 data/restructured_data/
 data/phase*.csv
-output/
-trash/
 
-# Models (large binary files)
-models/*.pkl
+# Trained models (binary besar)
+models/
+
+# Generated reports - hanya v3 final yang di-track
+output/*.txt
+output/*.json
+output/AD_Anomaly_Detection_Report.docx
+output/AD_Anomaly_Detection_Report_v2.docx
+output/~$*.docx
+
+# Trash folder
+trash/
 
 # IDE
 .vscode/

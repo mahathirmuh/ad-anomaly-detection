@@ -165,12 +165,28 @@ class MultiMethodAnomalyDetector:
             0.4 * self.df['rule_score']
         )
 
-        # Classify severity
+        # Classify severity using quantile-based thresholds (data-driven)
+        # Reference:
+        #   - Aggarwal, C. C. (2017). Outlier Analysis. Springer.
+        #   - Goldstein & Uchida (2016). A Comparative Evaluation of
+        #     Unsupervised Anomaly Detection Algorithms. PLOS ONE.
+        #   - Liu, Ting, Zhou (2008). Isolation Forest. IEEE ICDM.
+        p75 = self.df['final_anomaly_score'].quantile(0.75)
+        p90 = self.df['final_anomaly_score'].quantile(0.90)
+        p95 = self.df['final_anomaly_score'].quantile(0.95)
+        p99 = self.df['final_anomaly_score'].quantile(0.99)
+
+        print(f"\n  Quantile-based severity thresholds:")
+        print(f"    CRITICAL (>=P99): {p99:.4f}")
+        print(f"    HIGH     (>=P95): {p95:.4f}")
+        print(f"    MEDIUM   (>=P90): {p90:.4f}")
+        print(f"    LOW      (>=P75): {p75:.4f}")
+
         self.df['severity'] = self.df['final_anomaly_score'].apply(lambda x:
-            'CRITICAL' if x > 0.75 else
-            'HIGH' if x > 0.60 else
-            'MEDIUM' if x > 0.40 else
-            'LOW' if x > 0.20 else
+            'CRITICAL' if x >= p99 else
+            'HIGH'     if x >= p95 else
+            'MEDIUM'   if x >= p90 else
+            'LOW'      if x >= p75 else
             'NORMAL'
         )
 
