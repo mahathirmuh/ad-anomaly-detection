@@ -49,6 +49,9 @@ output/~$*.docx
 # Trash folder
 trash/
 
+# Third-party reference template (not project work)
+(Ver. 2025.5.18) IJIES_Format.docx
+
 # IDE
 .vscode/
 .idea/

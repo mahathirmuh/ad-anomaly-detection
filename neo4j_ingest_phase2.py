@@ -22,6 +22,36 @@ class Neo4jIngestor:
             self.session.close()
         self.driver.close()
 
+    def clear_database(self, database='neo4j'):
+        """Drop and recreate the database for a clean, reproducible rebuild.
+
+        Uses `CREATE OR REPLACE DATABASE` (a filesystem-level reset via the system
+        database) instead of Cypher `DETACH DELETE`. Deleting 680K+ nodes via Cypher
+        OOMs or deadlocks memory-constrained Neo4j instances; dropping the database
+        is instant and memory-safe. Starting from an empty database guarantees that
+        relationship count/frequency accumulators (`ON MATCH SET ... + 1`) produce
+        identical results for identical input across runs.
+        """
+        import time
+
+        print("\n" + "="*70)
+        print("RESETTING DATABASE (drop & recreate for reproducibility)")
+        print("="*70)
+
+        with self.driver.session(database='system') as session:
+            session.run(f"CREATE OR REPLACE DATABASE {database}").consume()
+
+        # Wait until the recreated database is online and accepting queries
+        for _ in range(60):
+            try:
+                with self.driver.session(database=database) as session:
+                    session.run("RETURN 1").consume()
+                print(f"  [OK] Database '{database}' recreated (empty, online)")
+                return
+            except Exception:
+                time.sleep(1)
+        raise RuntimeError(f"Database '{database}' did not come online after CREATE OR REPLACE")
+
     def create_constraints_and_indexes(self):
         """Create constraints and indexes"""
         print("\n" + "="*70)
@@ -595,6 +625,9 @@ class Neo4jIngestor:
         print(f"Start time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
 
         try:
+            # Step 0: Clear database for a clean, reproducible rebuild
+            self.clear_database()
+
             # Step 1: Create schema
             self.create_constraints_and_indexes()
 
