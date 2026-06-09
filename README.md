@@ -114,6 +114,7 @@ python neo4j_phase6_reporting.py   # Phase 6: Generate laporan
 ```bash
 python generate_report_docx_v3.py  # Laporan DOCX lengkap (12 section)
 python generate_paper_ijies.py     # Draft paper format IJIES
+python generate_ppt_outline_v4.py  # Outline presentasi (22 slide + 7 gambar)
 ```
 
 ---
@@ -284,6 +285,7 @@ tdas_adauditv3/
 ├── restructure_for_neo4j.py        # Pra-proses: gabung CSV raw
 ├── generate_report_docx_v3.py      # Laporan DOCX (12 section)
 ├── generate_paper_ijies.py         # Draft paper format IJIES
+├── generate_ppt_outline_v4.py      # Outline presentasi (22 slide + 7 gambar)
 ├── requirements.txt                # Dependensi Python
 ├── setup.sh                        # Setup script (Linux/Mac)
 │
@@ -298,7 +300,21 @@ tdas_adauditv3/
 ├── output/                         # Laporan akhir + paper
 ├── cypher/                         # Query Cypher untuk Neo4j Browser
 └── docs/                           # Dokumentasi, referensi, presentasi
+    ├── PANDUAN_PRESENTASI_DAN_PENGGUNAAN.md   # Panduan presentasi (Q&A dosen) + cara pakai
+    ├── TESTING_NEO4J.md                       # Query verifikasi per-phase + angka kanonik
+    ├── references/                            # Paper referensi (PDF)
+    └── presentations/                         # Outline & file presentasi (v4)
 ```
+
+---
+
+## Dokumentasi Pendukung
+
+| Dokumen | Isi |
+|---------|-----|
+| [`docs/PANDUAN_PRESENTASI_DAN_PENGGUNAAN.md`](docs/PANDUAN_PRESENTASI_DAN_PENGGUNAAN.md) | Panduan presentasi lengkap: alur slide, konsep wajib dikuasai, antisipasi pertanyaan dosen, + cara penggunaan pipeline |
+| [`docs/TESTING_NEO4J.md`](docs/TESTING_NEO4J.md) | Query Cypher siap pakai untuk verifikasi tiap phase di Neo4j Browser, dengan angka kanonik acuan |
+| `docs/presentations/PPT_Outline_TDAS_AD_Audit_v4.docx` | Outline presentasi 22 slide + 7 gambar (dinamis dari data kanonik) |
 
 ---
 
