@@ -31,6 +31,9 @@ wheels/
 .env.local
 .env.*.local
 
+# AI-detection reports (internal process artifacts, not for repo history)
+Paperpal_AI_Detection_Report*.pdf
+
 # Raw / large data (sensitif & regenerated)
 data/raw_data/
 data/restructured_data/

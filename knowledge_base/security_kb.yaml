@@ -1,0 +1,320 @@
+# =============================================================================
+# KNOWLEDGE BASE — Penjelasan Anomali (Basis Pengetahuan untuk LLM Explainer)
+# =============================================================================
+# Tujuan: file ini DIBACA oleh LLM (Phase 7) untuk menyusun penjelasan anomali
+#         yang dapat dibaca manusia + grounded ke pengetahuan keamanan.
+#
+# Cara pakai: saat user di-flag anomali, ambil entri 'rules' & 'features' yang
+#             relevan (rule yang dilanggar + top fitur SHAP), suntikkan ke prompt
+#             LLM bersama bukti (nilai fitur, skor, severity).
+#             LLM HANYA merangkai dari sini — tidak mengarang.
+#
+# KREDIBILITAS SUMBER:
+#   - MITRE ATT&CK : TERVERIFIKASI dari attack.mitre.org (lihat meta.referensi_resmi).
+#   - Windows Event ID : mengacu Microsoft Learn (audit events) — disarankan spot-check.
+#   - Deskripsi rule/fitur : dari dokumen project (docs/PHASE3_RULES.md, PHASE4_FEATURES.md).
+#
+# STATUS: draft v0.3. Mapping MITRE terverifikasi (attack.mitre.org); threshold R008-R010
+#         sudah diisi dari kode (neo4j_phase3_rules.py). Tidak ada TODO tersisa.
+# =============================================================================
+
+meta:
+  versi: "0.3-draft"
+  bahasa: "id"
+  catatan: "Kurasi manual. LLM merangkai dari entri ini, bukan mengarang. Selalu cantumkan sitasi."
+  prinsip_grounding:
+    - "Narasi harus SETIA pada bukti (nilai fitur, rule yang dilanggar) — jangan mengarang arah/sebab."
+    - "Pakai magnitude/nilai faktual (mis. lockout=12.693), bukan asumsi."
+    - "Selalu cantumkan sumber (MITRE ID + URL / Event ID) di output."
+
+  # --- Referensi resmi (TERVERIFIKASI dari sumber, untuk sitasi) ---
+  referensi_resmi:
+    mitre_attack:
+      - { id: "T1110",     nama: "Brute Force",              url: "https://attack.mitre.org/techniques/T1110/" }
+      - { id: "T1078",     nama: "Valid Accounts",           url: "https://attack.mitre.org/techniques/T1078/" }
+      - { id: "T1078.002", nama: "Valid Accounts: Domain Accounts", url: "https://attack.mitre.org/techniques/T1078/002/" }
+      - { id: "T1098",     nama: "Account Manipulation",     url: "https://attack.mitre.org/techniques/T1098/" }
+      - { id: "T1021",     nama: "Remote Services",          url: "https://attack.mitre.org/techniques/T1021/" }
+      - { id: "T1133",     nama: "External Remote Services", url: "https://attack.mitre.org/techniques/T1133/" }
+      - { id: "T1003",     nama: "OS Credential Dumping",    url: "https://attack.mitre.org/techniques/T1003/" }
+      - { id: "T1552",     nama: "Unsecured Credentials",    url: "https://attack.mitre.org/techniques/T1552/" }
+    windows_event_id:   # 4625/4740/4672 TERVERIFIKASI langsung dari Microsoft Learn
+      - { id: "4625", nama: "An account failed to log on", url: "https://learn.microsoft.com/windows/security/threat-protection/auditing/event-4625" }
+      - { id: "4740", nama: "A user account was locked out", url: "https://learn.microsoft.com/windows/security/threat-protection/auditing/event-4740" }
+      - { id: "4672", nama: "Special privileges assigned to new logon", url: "https://learn.microsoft.com/windows/security/threat-protection/auditing/event-4672" }
+      - { id: "4624", nama: "An account was successfully logged on", url: "https://learn.microsoft.com/windows/security/threat-protection/auditing/event-4624" }
+      - { id: "4720/4726", nama: "User account created / deleted", url: "https://learn.microsoft.com/windows/security/threat-protection/auditing/event-4720" }
+      - { id: "4728/4732/4756", nama: "Member added to security-enabled group (global/local/universal)", url: "https://learn.microsoft.com/windows/security/threat-protection/auditing/event-4728" }
+      - { id: "4768/4769/4771", nama: "Kerberos TGT/TGS requested; pre-auth failed", url: "https://learn.microsoft.com/windows/security/threat-protection/auditing/event-4768" }
+    catatan_event_id: "4625/4740/4672 diverifikasi langsung dari MS Learn; sisanya mengikuti seri dokumentasi audit MS Learn yang sama."
+    mitre_mitigations:   # TERVERIFIKASI dari attack.mitre.org
+      T1110: ["M1036 Account Use Policies", "M1032 Multi-factor Authentication", "M1027 Password Policies", "M1018 User Account Management"]
+      T1078: ["M1036 Account Use Policies", "M1015 Active Directory Configuration", "M1032 Multi-factor Authentication", "M1027 Password Policies", "M1026 Privileged Account Management", "M1018 User Account Management"]
+      T1098: ["M1032 Multi-factor Authentication", "M1030 Network Segmentation", "M1028 Operating System Configuration", "M1026 Privileged Account Management", "M1018 User Account Management"]
+
+# -----------------------------------------------------------------------------
+# Klasifikasi severity (quantile-based, dari Phase 5) — konteks tingkat bahaya
+# -----------------------------------------------------------------------------
+severity:
+  metode: "Quantile-based pada final_anomaly_score (data-driven, reproducible)"
+  level:
+    - { nama: "CRITICAL", ambang: ">= P99", arti: "Top 1% paling anomali" }
+    - { nama: "HIGH",     ambang: ">= P95", arti: "Top 5%" }
+    - { nama: "MEDIUM",   ambang: ">= P90", arti: "Top 10%" }
+    - { nama: "LOW",      ambang: ">= P75", arti: "Top 25%" }
+    - { nama: "NORMAL",   ambang: "< P75",  arti: "Sisanya (mayoritas)" }
+  sumber: "neo4j_phase5_anomaly.py (quantile thresholds); README"
+
+# -----------------------------------------------------------------------------
+# Pola kombinasi fitur yang sering muncul bersamaan (untuk penjelasan multi-fitur)
+# -----------------------------------------------------------------------------
+pola_kombinasi:
+  - kombinasi: ["lockout_count", "failure_ratio"]
+    makna: "Lockout tinggi + login gagal intens = sinyal kuat brute-force / credential stuffing (atau service account berkredensial usang)."
+    mitre: "T1110"
+  - kombinasi: ["admin_actions", "sensitive_groups"]
+    makna: "Banyak aksi admin + anggota grup sensitif = risiko penyalahgunaan privilege atau akun admin dibajak (account manipulation)."
+    mitre: "T1098"
+  - kombinasi: ["host_diversity", "shared_device_risk"]
+    makna: "Login lintas banyak host + device dipakai bersama = potensi pergerakan lateral atau credential sharing."
+    mitre: "T1021"
+  - kombinasi: ["critical_server_ratio", "privilege_level"]
+    makna: "Akses server kritikal + privilege tinggi = target eskalasi privilege; awasi terutama di luar jam kerja (R007)."
+    mitre: "T1078.002"
+
+# -----------------------------------------------------------------------------
+# 10 RULE (Rule-Based Knowledge Engine) — deskripsi: docs/PHASE3_RULES.md + README
+# Mapping MITRE: TERVERIFIKASI (attack.mitre.org)
+# -----------------------------------------------------------------------------
+rules:
+  - id: "R001"
+    nama: "Login dari banyak host (Multi-host login)"
+    fitur_terkait: "host_diversity"
+    kondisi: "Login dari > 3 host unik (LOW >3, MEDIUM >5, HIGH >10)"
+    deskripsi: "User login dari jumlah workstation/host yang tidak wajar dibanding pola normal."
+    kenapa_bahaya: "Bisa menandakan pergerakan lateral (lateral movement) atau kredensial yang dipakai di banyak mesin."
+    kemungkinan_penyebab:
+      jinak: "Admin/IT support yang memang bekerja lintas banyak host; user roaming."
+      jahat: "Akun dicuri lalu dipakai menyebar ke banyak host."
+    mitre: ["T1021 Remote Services", "T1078 Valid Accounts"]
+    event_id: "4624 (logon), 4768/4769 (Kerberos TGT/TGS)"
+    rekomendasi: "Bandingkan dengan baseline host user; cek apakah host-host itu wajar untuk perannya; investigasi bila lintas-segmen."
+    sumber: "docs/PHASE3_RULES.md#R001; MITRE T1021/T1078 (lihat meta.referensi_resmi)"
+
+  - id: "R002"
+    nama: "Login di luar jam kerja (Off-hours login)"
+    fitur_terkait: "pola waktu"
+    kondisi: "Rasio login di luar 08:00–18:00 hari kerja > 10% (MEDIUM >25%, HIGH >50%)"
+    deskripsi: "Proporsi aktivitas login di luar jam kerja normal terlalu tinggi."
+    kenapa_bahaya: "Penyerang sering aktif di luar jam kerja untuk menghindari deteksi."
+    kemungkinan_penyebab:
+      jinak: "Shift malam, lembur, beda zona waktu, service account."
+      jahat: "Akses tidak sah saat pengawasan minim."
+    mitre: ["T1078 Valid Accounts"]
+    event_id: "4624 (cek field waktu)"
+    rekomendasi: "Verifikasi jadwal kerja user; korelasikan dengan aktivitas lain di jam tsb."
+    sumber: "docs/PHASE3_RULES.md#R002; MITRE T1078"
+
+  - id: "R003"
+    nama: "Shared device (perangkat dipakai banyak user)"
+    fitur_terkait: "shared_device_risk"
+    kondisi: "Mengakses device yang dipakai > 5 user berbeda (MEDIUM >2 device, HIGH >5)"
+    deskripsi: "User memakai perangkat yang juga dipakai banyak user lain."
+    kenapa_bahaya: "Risiko credential sharing / device terkontaminasi / jejak audit kabur."
+    kemungkinan_penyebab:
+      jinak: "Komputer bersama (lab, kios, ruang meeting)."
+      jahat: "Berbagi kredensial; penyerang memanfaatkan device umum."
+    mitre: ["T1078 Valid Accounts", "T1552 Unsecured Credentials"]
+    event_id: "4624"
+    rekomendasi: "Identifikasi device bersama yang sah; terapkan kebijakan no-credential-sharing."
+    sumber: "docs/PHASE3_RULES.md#R003; MITRE T1078/T1552"
+
+  - id: "R004"
+    nama: "Akses critical server / Domain Controller"
+    fitur_terkait: "critical_server_ratio"
+    kondisi: "Mengakses server CRITICAL/HIGH atau Domain Controller (MEDIUM >2, HIGH >5)"
+    deskripsi: "User mengautentikasi ke server kritikal/DC yang sensitif."
+    kenapa_bahaya: "Akses ke DC = target utama untuk eskalasi privilege & pencurian kredensial domain."
+    kemungkinan_penyebab:
+      jinak: "Admin domain/infrastruktur yang memang bertugas."
+      jahat: "Eskalasi privilege; persiapan serangan kredensial (mis. DCSync)."
+    mitre: ["T1078 Valid Accounts", "T1003 OS Credential Dumping"]
+    event_id: "4624/4672 di DC"
+    rekomendasi: "Pastikan user punya hak sah ke server tsb; audit aktivitas di DC."
+    sumber: "docs/PHASE3_RULES.md#R004; MITRE T1078/T1003"
+
+  - id: "R005"
+    nama: "Lonjakan login gagal (Failed login spike)"
+    fitur_terkait: "failure_ratio"
+    kondisi: "> 50 login gagal total ATAU > 10 gagal dalam satu relasi (MEDIUM >100, HIGH >500)"
+    deskripsi: "Jumlah percobaan login gagal jauh di atas normal."
+    kenapa_bahaya: "Ciri khas brute-force / password guessing / credential stuffing."
+    kemungkinan_penyebab:
+      jinak: "User lupa password; aplikasi dengan kredensial kedaluwarsa."
+      jahat: "Serangan brute-force untuk menebak password."
+    mitre: ["T1110 Brute Force"]
+    event_id: "4625 (failed logon), 4771 (Kerberos pre-auth failed)"
+    rekomendasi: "Cek IP/sumber percobaan; aktifkan lockout & MFA; reset kredensial bila perlu."
+    sumber: "docs/PHASE3_RULES.md#R005; MITRE T1110"
+
+  - id: "R006"
+    nama: "IP tidak dikenal (Unusual IP)"
+    fitur_terkait: "ip_network_risk"
+    kondisi: "Koneksi dari IP di luar Office_Network/VPN (MEDIUM >2, HIGH >5)"
+    deskripsi: "User terhubung dari alamat IP di luar jaringan yang diharapkan."
+    kenapa_bahaya: "Akses dari luar jaringan tepercaya bisa menandakan akun dipakai dari lokasi asing."
+    kemungkinan_penyebab:
+      jinak: "WFH tanpa VPN; IP dinamis; perjalanan dinas."
+      jahat: "Akses dari infrastruktur penyerang/luar negeri."
+    mitre: ["T1078 Valid Accounts", "T1133 External Remote Services"]
+    event_id: "4624 (IP sumber)"
+    rekomendasi: "Geolokasi IP; korelasi dengan jadwal/lokasi user; blokir IP mencurigakan."
+    sumber: "docs/PHASE3_RULES.md#R006; MITRE T1078/T1133"
+
+  - id: "R007"
+    nama: "Akses privileged di luar jam kerja"
+    fitur_terkait: "privilege_level + waktu"
+    kondisi: "User privileged (HIGH/ADMIN) akses server CRITICAL/DC di luar jam kerja"
+    deskripsi: "Akun ber-privilege tinggi mengakses sumber kritikal pada waktu tidak wajar."
+    kenapa_bahaya: "Kombinasi privilege tinggi + waktu ganjil = sinyal kuat aktivitas tidak sah."
+    kemungkinan_penyebab:
+      jinak: "Maintenance terjadwal malam hari oleh admin."
+      jahat: "Penyalahgunaan akun admin saat pengawasan minim."
+    mitre: ["T1078.002 Valid Accounts: Domain Accounts"]
+    event_id: "4672 (special privileges), 4624 di DC"
+    rekomendasi: "Verifikasi jadwal maintenance; audit perubahan yang dilakukan saat akses tsb."
+    sumber: "docs/PHASE3_RULES.md#R007; MITRE T1078.002"
+
+  - id: "R008"
+    nama: "Sering lockout (Frequent lockouts)"
+    fitur_terkait: "lockout_count"
+    kondisi: "≥ 3 lockout = violation; severity LOW ≥3, MEDIUM ≥5, HIGH ≥10 (sum r.count pada LOCKED_OUT)"
+    deskripsi: "Akun user berkali-kali terkunci."
+    kenapa_bahaya: "Lockout beruntun adalah efek samping khas brute-force atau kredensial usang yang dipakai service."
+    kemungkinan_penyebab:
+      jinak: "Service/aplikasi memakai password lama → gagal terus → lockout."
+      jahat: "Brute-force memicu kebijakan lockout."
+    mitre: ["T1110 Brute Force"]
+    event_id: "4740 (account lockout), 4625 (failed logon)"
+    rekomendasi: "Telusuri sumber autentikasi yang memicu lockout; reset kredensial; cek service account."
+    sumber: "README (R008); MITRE T1110; MS Learn — Account Lockout"
+
+  - id: "R009"
+    nama: "Banyak admin action (Excessive admin actions)"
+    fitur_terkait: "admin_actions"
+    kondisi: "≥ 50 admin action = violation; severity LOW ≥50, MEDIUM ≥100, HIGH ≥200 (ADMIN_ACTION_ON)"
+    deskripsi: "User melakukan banyak tindakan administratif (buat/ubah/hapus akun, ubah grup, dll)."
+    kenapa_bahaya: "Volume aksi admin tinggi bisa menandakan penyalahgunaan privilege atau akun admin yang dibajak."
+    kemungkinan_penyebab:
+      jinak: "Admin sedang melakukan perubahan massal yang sah."
+      jahat: "Account manipulation / pembuatan akun backdoor / perubahan tidak sah."
+    mitre: ["T1098 Account Manipulation", "T1078 Valid Accounts"]
+    event_id: "4720/4726 (buat/hapus akun), 4728/4732 (tambah anggota grup), 4672"
+    rekomendasi: "Review log perubahan yang dilakukan; konfirmasi otorisasi change-management."
+    sumber: "README (R009); MITRE T1098"
+
+  - id: "R010"
+    nama: "Anggota grup sensitif (Sensitive group membership)"
+    fitur_terkait: "sensitive_groups"
+    kondisi: "Anggota ≥ 1 grup sensitif = violation; severity LOW ≥1, MEDIUM ≥2, HIGH ≥3 (REAL_MEMBER_OF)"
+    deskripsi: "User menjadi anggota grup sensitif (mis. Domain Admins, Enterprise Admins)."
+    kenapa_bahaya: "Keanggotaan grup sensitif = privilege besar; penambahan tak sah = eskalasi privilege / persistence."
+    kemungkinan_penyebab:
+      jinak: "Memang admin/role yang sah."
+      jahat: "Ditambahkan diam-diam ke grup admin untuk mempertahankan akses (persistence)."
+    mitre: ["T1098 Account Manipulation", "T1078.002 Valid Accounts: Domain Accounts"]
+    event_id: "4728/4732/4756 (penambahan anggota grup keamanan)"
+    rekomendasi: "Verifikasi kapan & oleh siapa user ditambahkan ke grup; cabut bila tidak sah."
+    sumber: "README (R010); MITRE T1098/T1078.002"
+
+# -----------------------------------------------------------------------------
+# 11 FITUR (graph features) — sumber: docs/PHASE4_FEATURES.md + FEATURE_LABELS
+# Dipakai untuk menerjemahkan output SHAP (top_feature) ke penjelasan.
+# -----------------------------------------------------------------------------
+features:
+  - id: "host_diversity"
+    label: "Login dari banyak host"
+    deskripsi: "Jumlah host unik yang diakses user relatif terhadap rata-rata."
+    interpretasi: { rendah: "<0.8 (normal)", sedang: "0.8–2.0", tinggi: ">2.0 (mencurigakan)" }
+    rule_terkait: "R001"
+    sumber: "docs/PHASE4_FEATURES.md"
+
+  - id: "critical_server_ratio"
+    label: "Akses critical server"
+    deskripsi: "Proporsi server kritikal/DC dari seluruh server yang diakses."
+    interpretasi: { rendah: "0.0–0.1", sedang: "0.1–0.5", tinggi: ">0.5" }
+    rule_terkait: "R004"
+    sumber: "docs/PHASE4_FEATURES.md"
+
+  - id: "failure_ratio"
+    label: "Intensitas login gagal"
+    deskripsi: "Jumlah login gagal dibagi jumlah relasi login (count LOGIN_FROM). PENTING: nilai TIDAK terbatas 0-1 — bisa puluhan ribu bila login gagal jauh lebih banyak dari relasi login. Jadi BUKAN 'rasio/proporsi'; baca sebagai 'login gagal per relasi login'."
+    interpretasi: { rendah: "0 (~20% user)", sedang: "median ~7 (p75 ~19)", tinggi: ">65 (p90) indikasi kuat brute-force; maks pada dataset ~72.833" }
+    rule_terkait: "R005"
+    sumber: "docs/PHASE4_FEATURES.md; distribusi dihitung dari data (median 6.84, p90 65.7, p99 641.6, maks 72833.6)"
+
+  - id: "shared_device_risk"
+    label: "Risiko shared device"
+    deskripsi: "Rata-rata jumlah user per device yang diakses."
+    interpretasi: { rendah: "1.0–2.0", sedang: "2.0–5.0", tinggi: ">5.0" }
+    rule_terkait: "R003"
+    sumber: "docs/PHASE4_FEATURES.md"
+
+  - id: "ip_network_risk"
+    label: "Risiko IP tidak dikenal"
+    deskripsi: "Proporsi IP di luar jaringan Office/VPN."
+    interpretasi: { rendah: "0.0–0.2", sedang: "0.2–0.7", tinggi: ">0.7" }
+    rule_terkait: "R006"
+    sumber: "docs/PHASE4_FEATURES.md"
+
+  - id: "privilege_level"
+    label: "Level privilege tinggi"
+    deskripsi: "Level hak akses tertinggi user (1=LOW … 4=ADMIN)."
+    interpretasi: { rendah: "1 (LOW)", sedang: "2–3 (MEDIUM/HIGH)", tinggi: "4 (ADMIN)" }
+    rule_terkait: "R007"
+    sumber: "docs/PHASE4_FEATURES.md"
+
+  - id: "connectivity"
+    label: "Graph connectivity tinggi"
+    deskripsi: "Degree centrality user dalam graph (seberapa terhubung)."
+    interpretasi: { rendah: "<0.01", sedang: "0.01–0.05", tinggi: ">0.05" }
+    rule_terkait: "-"
+    sumber: "docs/PHASE4_FEATURES.md"
+
+  - id: "rule_violations"
+    label: "Pelanggaran rule"
+    deskripsi: "Jumlah rule domain yang dilanggar (0–10)."
+    interpretasi: { rendah: "0", sedang: "1–2", tinggi: "3+ (risiko tinggi)" }
+    rule_terkait: "semua"
+    sumber: "docs/PHASE4_FEATURES.md; docs/PHASE3_RULES.md"
+
+  - id: "lockout_count"
+    label: "Sering lockout"
+    deskripsi: "Jumlah event lockout akun per user."
+    interpretasi: { rendah: "0–2", sedang: "3–9 (R008 LOW/MEDIUM)", tinggi: "≥10 (R008 HIGH)" }
+    rule_terkait: "R008"
+    sumber: "MITRE T1110; MS Learn — Account Lockout Policy"
+
+  - id: "admin_actions"
+    label: "Banyak admin action"
+    deskripsi: "Jumlah tindakan administratif yang dilakukan user."
+    interpretasi: { rendah: "0–49", sedang: "50–199 (R009 LOW/MEDIUM)", tinggi: "≥200 (R009 HIGH)" }
+    rule_terkait: "R009"
+    sumber: "MITRE T1098"
+
+  - id: "sensitive_groups"
+    label: "Anggota grup sensitif"
+    deskripsi: "Jumlah grup sensitif (ADMIN/HIGH) yang diikuti user."
+    interpretasi: { rendah: "0", sedang: "1–2 (R010 LOW/MEDIUM)", tinggi: "≥3 (R010 HIGH)" }
+    rule_terkait: "R010"
+    sumber: "MITRE T1098/T1078.002"
+
+# -----------------------------------------------------------------------------
+# Template output yang diharapkan dari LLM (panduan, bukan data)
+# -----------------------------------------------------------------------------
+template_output:
+  ringkasan: "1–2 kalimat: siapa, severity, skor, penyebab utama (fakta dari SHAP)."
+  penjelasan: "Kenapa pola ini mencurigakan, dikaitkan ke rule + teknik MITRE."
+  bukti: "Nilai faktual (mis. lockout_count=12.693, rule dilanggar=R005,R008)."
+  rekomendasi: "Langkah konkret untuk analis."
+  sumber: "Daftar MITRE ID+URL / Event ID / dokumen yang dirujuk (wajib, harus kredibel)."

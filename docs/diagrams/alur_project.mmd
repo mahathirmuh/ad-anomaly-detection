@@ -1,0 +1,115 @@
+flowchart TB
+    %% ===== NODES =====
+    DATA(["<b>Active Directory Event Logs</b><br/>1.8M+ events · 887 users · target: anomalous users"]):::terminal
+    PRE["<b>PRE-PROCESSING</b><br/>restructure_for_neo4j.py<br/>raw → restructured (3 csv)"]:::pre
+    GRAPH[("<b>Neo4j Knowledge Graph</b><br/>Phase 2 · 7 node types · 10 relations")]:::kg
+
+    RULES["<b>Phase 3 · Rule Engine</b><br/>10 domain rules → rule_violations 0–10"]:::proc
+    FEAT["<b>Phase 4 · Feature Extraction</b><br/>Cypher aggregation · 887 × 11 features"]:::proc
+
+    IF["<b>Isolation Forest</b><br/>contamination 5%"]:::proc
+    LOF["<b>Local Outlier Factor</b><br/>density-based"]:::proc
+    EE["<b>Elliptic Envelope</b><br/>covariance-based"]:::proc
+    ENS["<b>Ensemble Vote</b><br/>ensemble_anomaly_score"]:::accent
+    FUSE["<b>SCORE FUSION</b><br/>final = 0.6 × ensemble + 0.4 × rule"]:::accent
+
+    SHAP["<b>Phase 5.5 · SHAP TreeExplainer</b><br/>beeswarm + bar · on IF sub-model"]:::proc
+    SEV["<b>Quantile Severity</b><br/>P99 CRITICAL · P95 HIGH · P90 MEDIUM · P75 LOW"]:::proc
+    DANOM{"Anomalous user?<br/>severity ≥ threshold"}:::decision
+
+    T1["<b>Concise Explanation (template)</b><br/>KB-based · deterministic · always runs"]:::proc
+    DKEY{"OPENAI_API_KEY<br/>available?"}:::decision
+    T2["<b>Narrative Explanation (AI)</b><br/>OpenAI gpt-4o-mini · T=0.2 · grounded to KB"]:::proc
+    DOK{"AI output valid?<br/>strict JSON schema"}:::decision
+    FBK["fallback:<br/>use Concise Explanation"]:::danger
+    FINAL["<b>Per-anomaly explanation</b><br/>concise + narrative + MITRE / Event ID sources"]:::proc
+
+    NORMAL["normal user<br/>(not explained)"]:::pre
+    REPORT(["<b>ANOMALY REPORT</b><br/>ranked · explained · MITRE-linked<br/>TXT · JSON · DOCX · Paper · PPT"]):::terminal
+
+    %% --- output artifacts (parallelogram) ---
+    O_RULE[/"rule_violations<br/>rule-based score"/]:::output
+    O_FEAT[/"phase4_graph_features.csv<br/>887 × 11"/]:::output
+    O_SCORE[/"phase5_anomaly_results.csv<br/>score + severity"/]:::output
+    O_SHAP[/"phase55_shap_*.csv<br/>top cause per user"/]:::output
+
+    %% ===== EDGES (fixed order — referenced by linkStyle below) =====
+    DATA --> PRE
+    PRE --> GRAPH
+    GRAPH -->|"Phase 3 · 10 rules"| RULES
+    RULES -->|"Phase 4 · 11 features"| FEAT
+    FEAT --> IF
+    FEAT --> LOF
+    FEAT --> EE
+    IF --> ENS
+    LOF --> ENS
+    EE --> ENS
+    ENS --> FUSE
+    FUSE --> SHAP
+    SHAP --> SEV
+    SEV --> DANOM
+    DANOM -->|"yes — anomaly"| T1
+    T1 --> DKEY
+    DKEY -->|"yes"| T2
+    T2 --> DOK
+    DOK -->|"yes — valid"| FINAL
+    FINAL --> REPORT
+    RULES -.-> O_RULE
+    FEAT -.-> O_FEAT
+    FUSE -.-> O_SCORE
+    SHAP -.-> O_SHAP
+    IF -. "TreeExplainer" .-> SHAP
+    RULES -. "rule_score · weight 0.4" .-> FUSE
+    DANOM -->|"no"| NORMAL
+    DKEY -->|"no — offline"| FBK
+    DOK -->|"no — failed"| FBK
+    FBK -.->|"use template"| FINAL
+    NORMAL -.-> REPORT
+
+    %% ===== STAGES =====
+    subgraph S1 ["STAGE 1 · GRAPH & RULES"]
+        GRAPH
+        RULES
+    end
+    subgraph S2 ["STAGE 2 · FEATURES"]
+        FEAT
+    end
+    subgraph S3 ["STAGE 3 · ENSEMBLE DETECTION"]
+        IF
+        LOF
+        EE
+        ENS
+        FUSE
+    end
+    subgraph S4 ["STAGE 4 · EXPLAIN & SEVERITY"]
+        SHAP
+        SEV
+        DANOM
+    end
+    subgraph S5 ["STAGE 5 · NATURALIZATION · Phase 7"]
+        T1
+        DKEY
+        T2
+        DOK
+        FBK
+        FINAL
+    end
+
+    %% ===== STYLE =====
+    classDef terminal fill:#2b2b2b,stroke:#111111,color:#ffffff,font-weight:bold
+    classDef pre fill:#f1f3f5,stroke:#868e96,color:#212529
+    classDef kg fill:#e7f1ff,stroke:#0d6efd,stroke-width:2px,color:#0b2e6b
+    classDef proc fill:#dbe7f5,stroke:#3a6ea5,color:#13314f
+    classDef accent fill:#3f5168,stroke:#243447,color:#ffffff,font-weight:bold
+    classDef decision fill:#3f5168,stroke:#243447,color:#ffffff,font-weight:bold
+    classDef output fill:#fff8e1,stroke:#d39e00,color:#5c4500
+    classDef danger fill:#fdecea,stroke:#c0392b,color:#7b1f17,font-weight:bold
+
+    linkStyle 20,21,22,23 stroke:#d39e00,stroke-width:1.5px
+    linkStyle 26,27,28,29 stroke:#c0392b,stroke-width:2px
+
+    style S1 fill:#f8fafc,stroke:#cbd5e1,color:#334155
+    style S2 fill:#f8fafc,stroke:#cbd5e1,color:#334155
+    style S3 fill:#f8fafc,stroke:#cbd5e1,color:#334155
+    style S4 fill:#f8fafc,stroke:#cbd5e1,color:#334155
+    style S5 fill:#f8fafc,stroke:#cbd5e1,color:#334155

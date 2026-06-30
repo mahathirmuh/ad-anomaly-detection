@@ -1,0 +1,15 @@
+flowchart LR
+    A(["<b>Active Directory Logs</b><br/>login & activity events"]):::terminal
+    B["<b>Build Knowledge Graph</b><br/>connect users, devices, servers"]:::proc
+    C["<b>Apply Security Rules</b><br/>flag risky patterns"]:::proc
+    D["<b>Summarize User Behavior</b><br/>a profile per user"]:::proc
+    E["<b>Detect Unusual Users</b><br/>machine learning finds outliers"]:::accent
+    F["<b>Explain the Findings</b><br/>why each user was flagged"]:::proc
+    G["<b>Rank by Risk Level</b><br/>critical · high · medium · low"]:::proc
+    H(["<b>Readable Anomaly Report</b><br/>clear, sourced explanations"]):::terminal
+
+    A --> B --> C --> D --> E --> F --> G --> H
+
+    classDef terminal fill:#2b2b2b,stroke:#111111,color:#ffffff,font-weight:bold
+    classDef proc fill:#dbe7f5,stroke:#3a6ea5,color:#13314f
+    classDef accent fill:#3f5168,stroke:#243447,color:#ffffff,font-weight:bold

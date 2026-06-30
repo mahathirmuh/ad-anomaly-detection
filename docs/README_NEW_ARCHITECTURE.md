@@ -221,13 +221,9 @@ Graph Example:
 
 ## 🎓 For Your Thesis/Paper
 
-### Title Suggestions
+### Title (final — paper IJIES)
 
-> "Graph-Based Knowledge Integrated Anomaly Detection for Active Directory: Combining Neo4j Relationship Analysis, Domain Rules, and Machine Learning for Interpretable Security Monitoring"
-
-Or:
-
-> "Towards Interpretable Active Directory Anomaly Detection Using Graph Intelligence, Formal Rules, and Unsupervised Learning"
+> "Explainable Anomaly Detection in Active Directory: Integrating a Rule-Based Knowledge Engine, Ensemble Learning, and SHAP for Human-Readable Reasoning"
 
 ### Key Novelties to Highlight
 

@@ -575,8 +575,8 @@ This is **novel** because:
 
 ### For Your Paper
 
-**Title Suggestion:**
-> "Graph-Based Knowledge Integrated Anomaly Detection for Active Directory: Combining Neo4j Relationship Analysis, Domain Rules, and Machine Learning for Interpretable Security Monitoring"
+**Judul final (paper IJIES):**
+> "Explainable Anomaly Detection in Active Directory: Integrating a Rule-Based Knowledge Engine, Ensemble Learning, and SHAP for Human-Readable Reasoning"
 
 **Key Innovations:**
 1. Neo4j-centric architecture (not visualization-only)

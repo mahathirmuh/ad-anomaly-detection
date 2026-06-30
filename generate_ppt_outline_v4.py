@@ -235,8 +235,8 @@ def note(text):
 
 # ── SLIDE 1: TITLE ───────────────────────────────────────────────────
 title("TDAS AD Audit v4", [
-    "Knowledge Graph-Based Anomaly Detection on Active Directory Logs",
-    "Using Ensemble Methods (IF + LOF + EE) and SHAP Explainability",
+    "Explainable Anomaly Detection in Active Directory:",
+    "Rule-Based Knowledge Engine + Ensemble Learning + SHAP for Human-Readable Reasoning",
     "",
     "Mahathir Muhammad",
     "Final Pipeline, Ablation Study & Draft Paper (IJIES) — Juni 2026",

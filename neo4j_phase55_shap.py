@@ -23,7 +23,7 @@ FEATURE_COLS = [
 FEATURE_LABELS = {
     'host_diversity':         'Login dari banyak host',
     'critical_server_ratio':  'Akses critical server',
-    'failure_ratio':          'Rasio login gagal',
+    'failure_ratio':          'Intensitas login gagal',
     'shared_device_risk':     'Risiko shared device',
     'ip_network_risk':        'Risiko IP tidak dikenal',
     'privilege_level':        'Level privilege tinggi',

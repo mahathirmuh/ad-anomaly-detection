@@ -1,6 +1,6 @@
 # Panduan Presentasi & Penggunaan — TDAS AD Audit v4
 
-**Knowledge Graph-Based Anomaly Detection on Active Directory Logs Using Ensemble Methods (IF + LOF + EE) and SHAP Explainability**
+**Explainable Anomaly Detection in Active Directory: Integrating a Rule-Based Knowledge Engine, Ensemble Learning, and SHAP for Human-Readable Reasoning**
 
 Penulis: **Mahathir Muhammad** · Dosen: **Dr. Kelly Rossa Sungkono, S.Kom., M.Kom.**
 Status: pipeline final, hasil **kanonik & reproducible**, draft paper IJIES siap.

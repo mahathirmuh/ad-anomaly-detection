@@ -1,29 +1,51 @@
-# AD Audit — Anomaly Detection Pipeline
+# Explainable Anomaly Detection in Active Directory
 
-Sistem deteksi anomali perilaku pengguna Active Directory berbasis Knowledge Graph (Neo4j), Rule Engine, dan Ensemble Machine Learning (IF + LOF + EE) dengan explainability SHAP.
+**Judul paper (IJIES):** *Explainable Anomaly Detection in Active Directory: Integrating a Rule-Based Knowledge Engine, Ensemble Learning, and SHAP for Human-Readable Reasoning*
+
+Sistem deteksi anomali perilaku pengguna Active Directory berbasis Knowledge Graph (Neo4j), Rule Engine, dan Ensemble Machine Learning (IF + LOF + EE) dengan explainability SHAP, ditutup dengan penjelasan anomali yang dapat dibaca manusia (Phase 7, grounded ke knowledge base).
 
 ## Arsitektur Pipeline
 
-```
-Raw AD Logs
-    │
-    ▼
-[Phase 2] Neo4j Ingestion          → Knowledge Graph (7 node types, 10 rel types)
-    │
-    ▼
-[Phase 3] Rule-Based Engine        → 10 domain rules → flag pelanggaran per user
-    │
-    ▼
-[Phase 4] Graph Feature Extraction → 11 fitur ML dari graph
-    │
-    ▼
-[Phase 5] Ensemble Anomaly Detection → IF + LOF + EE → anomaly score + quantile severity
-    │
-    ▼
-[Phase 5.5] SHAP Explainability    → top cause per user
-    │
-    ▼
-[Phase 6] Reporting                → laporan teks, JSON, DOCX
+Diagram berikut ter-render otomatis di GitHub dan preview Markdown VS Code (format Mermaid). Penjelasan asal-usul data lengkap ada di [`docs/PENJELASAN_FITUR.md`](docs/PENJELASAN_FITUR.md).
+
+> Flowchart lengkap (berstage, dengan titik keputusan & fallback Phase 7): [`docs/ALUR_PROJECT.md`](docs/ALUR_PROJECT.md).
+
+```mermaid
+flowchart TB
+    DATA(["<b>AD Event Logs</b><br/>1.8M+ events · 887 users"]):::terminal
+    RESTRUCT["<b>Pre-processing</b><br/>restructure_for_neo4j.py"]:::pre
+    GRAPH[("<b>Neo4j Knowledge Graph</b><br/>7 node types · 10 relations")]:::kg
+    RULES["<b>Phase 3 · 10 Rules</b><br/>rule_violations 0–10"]:::proc
+    FEAT["<b>Phase 4 · 11 Features</b><br/>Cypher aggregation · 887 × 11"]:::proc
+    SCORE["<b>Phase 5 · Ensemble + Fusion</b><br/>IF + LOF + EE · final = 0.6·ens + 0.4·rule"]:::accent
+    SHAPOUT["<b>Phase 5.5 · SHAP</b><br/>top cause per user · quantile severity"]:::proc
+    EXPL["<b>Phase 7 · Explanation</b><br/>Concise (template) + Narrative (AI, grounded KB)"]:::proc
+    REPORT(["<b>Anomaly Report</b><br/>TXT · JSON · DOCX · Paper · PPT"]):::terminal
+
+    DATA --> RESTRUCT
+    RESTRUCT -->|"Phase 2 — ingest"| GRAPH
+    GRAPH -->|"Phase 3"| RULES
+    RULES -->|"Phase 4"| FEAT
+    FEAT -->|"Phase 5"| SCORE
+    RULES -. "rule_score · 0.4" .-> SCORE
+    SCORE -->|"Phase 5.5"| SHAPOUT
+    SHAPOUT -->|"Phase 6 + 7"| EXPL
+    EXPL --> REPORT
+
+    subgraph NB [" Notebook: pipeline_adaudit.ipynb "]
+        GRAPH
+        RULES
+        FEAT
+        SCORE
+        SHAPOUT
+        EXPL
+    end
+
+    classDef terminal fill:#2b2b2b,stroke:#111111,color:#ffffff,font-weight:bold
+    classDef pre fill:#f1f3f5,stroke:#868e96,color:#212529
+    classDef kg fill:#e7f1ff,stroke:#0d6efd,stroke-width:2px,color:#0b2e6b
+    classDef proc fill:#dbe7f5,stroke:#3a6ea5,color:#13314f
+    classDef accent fill:#3f5168,stroke:#243447,color:#ffffff,font-weight:bold
 ```
 
 ---
@@ -33,7 +55,7 @@ Raw AD Logs
 ### Software
 
 | Software | Versi | Keterangan |
-|----------|-------|------------|
+| ---------- | ------- | ------------ |
 | Python | 3.10+ | Direkomendasikan 3.12 |
 | Neo4j | 5.x | Community atau Enterprise |
 | Jupyter | 1.0+ | Untuk menjalankan notebook |
@@ -81,7 +103,7 @@ Pastikan Neo4j sudah berjalan sebelum menjalankan pipeline:
 Letakkan file CSV raw di folder `data/raw_data/`. Pra-proses (`restructure_for_neo4j.py`) menggabungkannya menjadi:
 
 | File hasil | Keterangan |
-|------------|------------|
+| ------------ | ------------ |
 | `data/restructured_data/unified_logon_events.csv` | Event logon gabungan (1.8 juta+ events) |
 | `data/restructured_data/account_lockouts.csv` | Event lockout akun |
 | `data/restructured_data/privileged_actions.csv` | Aksi admin/privileged |
@@ -131,7 +153,7 @@ python generate_ppt_outline_v4.py  # Outline presentasi (22 slide + 7 gambar)
 Relationship types:
 
 | Relationship | Dari → Ke | Keterangan |
-|-------------|-----------|------------|
+| ------------- | ----------- | ------------ |
 | `LOGIN_FROM` | User → Hostname | Logon dari workstation |
 | `AUTHENTICATED_VIA` | User → Server | Autentikasi ke server |
 | `FAILED_LOGIN` | User → Server | Login gagal |
@@ -153,7 +175,7 @@ Relationship types:
 **Output:** Property `rule_violations` (0–10) + flag per rule pada node User
 
 | Rule | Nama | Kondisi Anomali |
-|------|------|----------------|
+| ------ | ------ | ---------------- |
 | R001 | Multi-host login | Login dari > 3 host unik |
 | R002 | Off-hours login | > 10% login di luar jam 08:00–18:00 |
 | R003 | Shared device | Device dipakai > 5 user berbeda |
@@ -177,10 +199,10 @@ Relationship types:
 **Fitur dasar (8):**
 
 | Fitur | Keterangan |
-|-------|-----------|
+| ------- | ----------- |
 | `host_diversity` | Jumlah host unik relatif terhadap rata-rata |
 | `critical_server_ratio` | Proporsi akses ke server kritikal |
-| `failure_ratio` | Rasio login gagal terhadap total login |
+| `failure_ratio` | Intensitas login gagal: Σ login gagal ÷ jumlah relasi `LOGIN_FROM` (bisa ≫ 1 — **bukan** rasio 0–1) |
 | `shared_device_risk` | Rata-rata user per device yang diakses |
 | `ip_network_risk` | Proporsi IP di luar jaringan kantor/VPN |
 | `privilege_level` | Level privilege tertinggi (1–4) |
@@ -190,7 +212,7 @@ Relationship types:
 **Fitur tambahan (3):**
 
 | Fitur | Keterangan |
-|-------|-----------|
+| ------- | ----------- |
 | `lockout_count` | Jumlah lockout event per user |
 | `admin_actions` | Jumlah admin action per user |
 | `sensitive_groups` | Keanggotaan grup sensitif |
@@ -205,7 +227,7 @@ Relationship types:
 Tiga algoritma unsupervised digabungkan (contamination = 0.05):
 
 | Model | Metode | Kekuatan |
-|-------|--------|---------|
+| ------- | -------- | --------- |
 | Isolation Forest (IF) | Random partitioning | Anomali global ekstrem |
 | Local Outlier Factor (LOF) | Density-based | Anomali lokal di cluster |
 | Elliptic Envelope (EE) | Robust covariance | Outlier statistik multivariat |
@@ -221,7 +243,7 @@ final_score = 0.60 × (ensemble_votes / 3) + 0.40 × (rule_violations / 10)
 **Klasifikasi severity (quantile-based, data-driven):**
 
 | Severity | Threshold | Persentil |
-|----------|-----------|-----------|
+| ---------- | ----------- | ----------- |
 | CRITICAL | ≥ P99 | Top 1% |
 | HIGH | ≥ P95 | Top 5% |
 | MEDIUM | ≥ P90 | Top 10% |
@@ -249,7 +271,7 @@ Menggunakan `shap.TreeExplainer` (native untuk Isolation Forest). Setiap user me
 **Output:**
 
 | File | Format | Isi |
-|------|--------|-----|
+| ------ | -------- | ----- |
 | `output/anomaly_detection_report.txt` | Teks | Executive summary, top anomali, rekomendasi |
 | `output/anomaly_detection_detailed.json` | JSON | 50 anomali teratas + evidence + SHAP |
 | `output/anomaly_statistics.json` | JSON | Distribusi severity, statistik fitur |
@@ -311,7 +333,13 @@ tdas_adauditv3/
 ## Dokumentasi Pendukung
 
 | Dokumen | Isi |
-|---------|-----|
+| --------- | ----- |
+| [`docs/HYBRID_REASONING.md`](docs/HYBRID_REASONING.md) | **Konsep inti (novelty):** penggabungan Rule-Based Knowledge Engine + Explainable AI (SHAP) → deteksi anomali dengan penalaran (diagram konseptual + teknis + worked example) |
+| [`docs/PHASE7_EXPLAINER.md`](docs/PHASE7_EXPLAINER.md) | Desain **Phase 7**: penjelasan anomali human-readable (knowledge base + OpenAI), grounding, anti-halusinasi, & evaluasi |
+| [`docs/ALUR_PROJECT.md`](docs/ALUR_PROJECT.md) | **Flowchart project end-to-end** + narasi per-STAGE + tabel I/O tiap phase (terverifikasi dari kode) |
+| [`docs/diagrams/README.md`](docs/diagrams/README.md) | Penjelasan **diagram pipeline** (`alur_project` detail vs `paper_pipeline` Figure 1 paper) + sumber `.mmd` & cara re-render |
+| [`docs/REFERENCES.md`](docs/REFERENCES.md) | Daftar **referensi paper bertaut** (DOI/arXiv) — terbaru 2021–2026, diprioritaskan IEEE, terverifikasi Crossref |
+| [`docs/PENJELASAN_FITUR.md`](docs/PENJELASAN_FITUR.md) | Penjelasan 11 fitur, asal-usul data (lineage), & cara baca visualisasi SHAP (bar chart + beeswarm) |
 | [`docs/PANDUAN_PRESENTASI_DAN_PENGGUNAAN.md`](docs/PANDUAN_PRESENTASI_DAN_PENGGUNAAN.md) | Panduan presentasi lengkap: alur slide, konsep wajib dikuasai, antisipasi pertanyaan dosen, + cara penggunaan pipeline |
 | [`docs/TESTING_NEO4J.md`](docs/TESTING_NEO4J.md) | Query Cypher siap pakai untuk verifikasi tiap phase di Neo4j Browser, dengan angka kanonik acuan |
 | `docs/presentations/PPT_Outline_TDAS_AD_Audit_v4.docx` | Outline presentasi 22 slide + 7 gambar (dinamis dari data kanonik) |

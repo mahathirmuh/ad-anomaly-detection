@@ -591,7 +591,7 @@ SHOW CONSTRAINTS
 | 3 | `max_rule_severity` | HIGH/MEDIUM/LOW |
 | 4 | `feature_host_diversity` | Jumlah host unik |
 | 4 | `feature_critical_server_ratio` | Akses server kritikal |
-| 4 | `feature_failure_ratio` | Rasio login gagal |
+| 4 | `feature_failure_ratio` | Intensitas login gagal (Σ gagal ÷ relasi LOGIN_FROM; bukan rasio 0–1) |
 | 4 | `feature_shared_device_risk` | Risiko shared device |
 | 4 | `feature_ip_network_risk` | Risiko IP unusual |
 | 4 | `feature_privilege_level` | Level privilege (1-4) |
