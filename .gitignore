@@ -43,8 +43,9 @@ data/phase*.csv
 models/
 
 # ── Draft paper / thesis / presentation materials — NOT in git (main project code only) ──
-# Paper & presentation generators
+# Paper / report / presentation generators
 generate_paper_*.py
+generate_report_docx*.py
 generate_ppt_outline_*.py
 # All generated docx/reports & experiment data
 output/
