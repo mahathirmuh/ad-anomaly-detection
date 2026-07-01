@@ -42,12 +42,28 @@ data/phase*.csv
 # Trained models (binary besar)
 models/
 
-# Generated reports - hanya v3 final yang di-track
-output/*.txt
-output/*.json
-output/AD_Anomaly_Detection_Report.docx
-output/AD_Anomaly_Detection_Report_v2.docx
-output/~$*.docx
+# ── Draft paper / thesis / presentation materials — NOT in git (main project code only) ──
+# Paper & presentation generators
+generate_paper_*.py
+generate_ppt_outline_*.py
+# All generated docx/reports & experiment data
+output/
+data/
+# Paper-supporting documents
+docs/JUSTIFICATION.md
+docs/REFERENCES.md
+docs/README_NEW_ARCHITECTURE.md
+docs/PANDUAN_PRESENTASI_DAN_PENGGUNAAN.md
+docs/presentations/
+docs/references/
+# Paper figures (general project diagrams like alur_project/process_flow stay tracked)
+docs/diagrams/framework_figure*
+docs/diagrams/kg_schema.*
+docs/diagrams/score_distribution.*
+docs/diagrams/shap_deletion_curve.*
+docs/diagrams/shap_importance.*
+docs/diagrams/confusion_matrix.*
+docs/diagrams/paper_pipeline.*
 
 # Trash folder
 trash/
