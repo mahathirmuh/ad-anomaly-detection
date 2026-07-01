@@ -1,6 +1,6 @@
-# Explainable Anomaly Detection in Active Directory
+# Hybrid Framework for Explainable Anomaly Detection in Active Directory
 
-**Judul paper (IJIES):** *Explainable Anomaly Detection in Active Directory: Integrating a Rule-Based Knowledge Engine, Ensemble Learning, and SHAP for Human-Readable Reasoning*
+**Judul paper (IJIES):** *Hybrid Framework for Explainable Anomaly Detection in Active Directory*
 
 Sistem deteksi anomali perilaku pengguna Active Directory berbasis Knowledge Graph (Neo4j), Rule Engine, dan Ensemble Machine Learning (IF + LOF + EE) dengan explainability SHAP, ditutup dengan penjelasan anomali yang dapat dibaca manusia (Phase 7, grounded ke knowledge base).
 
